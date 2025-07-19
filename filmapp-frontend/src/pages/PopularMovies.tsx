@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import api from "../services/api";
+import { getPopularMovies, searchMovies, submitReview } from "../services/FilmService";
+import type { IMovie } from "../models/IMovie";
 
 const PopularMovies: React.FC = () => {
-  const [movies, setMovies] = useState<any[]>([]);
+  const [movies, setMovies] = useState<IMovie[]>([]);
   const [ratings, setRatings] = useState<{ [key: number]: number }>({});
   const [notes, setNotes] = useState<{ [key: number]: string }>({});
   const [message, setMessage] = useState("");
@@ -16,35 +17,20 @@ const PopularMovies: React.FC = () => {
   const fetchMovies = async (searchQuery = "", pageNumber = 1) => {
     setLoading(true);
     try {
-      let endpoint = "";
+      let results: IMovie[] = [];
 
       if (searchQuery.trim() === "") {
-        
-        endpoint = `/film/popular?page=${pageNumber}&limit=${limit}`;
-      } else {
-       
-        endpoint = `/film/search?query=${encodeURIComponent(
-          searchQuery.trim()
-        )}&limit=100`;
-      }
-
-      const response = await api.get(endpoint);
-      const results = response.data.results || [];
-
-      if (searchQuery.trim() === "") {
-       
+        results = await getPopularMovies(pageNumber, limit);
         if (pageNumber === 1) {
           setMovies(results);
         } else {
           setMovies((prev) => [...prev, ...results]);
         }
-
-       
         setHasMore(results.length === limit);
       } else {
-        
+        results = await searchMovies(searchQuery);
         setMovies(results);
-        setHasMore(false); 
+        setHasMore(false);
       }
     } catch (error) {
       console.error("Filmler alınamadı", error);
@@ -84,10 +70,7 @@ const PopularMovies: React.FC = () => {
         return;
       }
 
-      await api.post(`/film/${movieId}/review`, {
-        rating,
-        note,
-      });
+      await submitReview(movieId, rating, note);
 
       setMessage("Puan ve not başarıyla kaydedildi.");
       setRatings((prev) => ({ ...prev, [movieId]: 0 }));
@@ -120,10 +103,7 @@ const PopularMovies: React.FC = () => {
         Popüler Filmler
       </h2>
 
-      <form
-        onSubmit={handleSearchSubmit}
-        style={{ textAlign: "center", marginBottom: 30 }}
-      >
+      <form onSubmit={handleSearchSubmit} style={{ textAlign: "center", marginBottom: 30 }}>
         <input
           type="text"
           placeholder="Film Adı"
@@ -199,9 +179,7 @@ const PopularMovies: React.FC = () => {
             />
 
             <div style={{ padding: "10px" }}>
-              <h4 style={{ fontSize: 16, margin: 0, color: "#0047AB" }}>
-                {movie.title}
-              </h4>
+              <h4 style={{ fontSize: 16, margin: 0, color: "#0047AB" }}>{movie.title}</h4>
 
               <label
                 htmlFor={`puan-${movie.id}`}
@@ -254,9 +232,7 @@ const PopularMovies: React.FC = () => {
                 id={`not-${movie.id}`}
                 placeholder="Not yazınız..."
                 value={notes[movie.id] || ""}
-                onChange={(e) =>
-                  setNotes({ ...notes, [movie.id]: e.target.value })
-                }
+                onChange={(e) => setNotes({ ...notes, [movie.id]: e.target.value })}
                 style={{
                   width: "100%",
                   padding: 8,
@@ -291,7 +267,6 @@ const PopularMovies: React.FC = () => {
         ))}
       </div>
 
-      { }
       {hasMore && query.trim() === "" && (
         <div style={{ textAlign: "center", marginTop: 40 }}>
           <button

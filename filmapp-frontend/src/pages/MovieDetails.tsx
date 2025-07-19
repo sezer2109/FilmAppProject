@@ -1,21 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import api from "../services/api";
+import { getMovieById } from "../services/FilmService";
+import type { IMovie } from "../models/IMovie";
+import type { IUserReview } from "../models/IUserReview";
+
 
 const MovieDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [movie, setMovie] = useState<any>(null);
+  const [movie, setMovie] = useState<IMovie | null>(null);
   const [average, setAverage] = useState<number>(0);
-  const [userReview, setUserReview] = useState<any>(null);
+  const [userReview, setUserReview] = useState<IUserReview | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
-    api.get(`/film/${id}`)
+    getMovieById(id)
       .then(res => {
-        setMovie(res.data.film);
-        setAverage(res.data.averageRating);
-        setUserReview(res.data.userReview);
+        setMovie(res.film);
+        setAverage(res.averageRating);
+        setUserReview(res.userReview);
       })
       .finally(() => setLoading(false));
   }, [id]);
